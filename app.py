@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import pandas as pd
 import numpy as np
@@ -10,24 +10,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static', template_folder='templates')
 
 # Enhanced CORS configuration
-CORS(app, resources={
-    r"/api/*": {
-        "origins": "*",
-        "methods": ["GET", "POST", "PUT", "DELETE"],
-        "allow_headers": ["Content-Type", "Authorization"]
-    }
-})
-
-# Add this to handle preflight requests
-@app.after_request
-def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
-    return response
+CORS(app)
 
 # Global variables for model and preprocessing
 model = None
@@ -182,9 +168,9 @@ def load_model():
             print("Model loaded from files successfully")
             return True
         else:
-            print("Model files not found, using pre-trained mappings")
-            # Initialize with pre-trained mappings for deployment
-            train_model()  # Train a new model
+            print("Model files not found, training new model...")
+            # Train a new model
+            train_model()
             return True
     except Exception as e:
         print(f"Error loading model: {e}")
@@ -211,14 +197,36 @@ def encode_categorical_value(feature, value):
 
 @app.route('/')
 def home():
-    return render_template('index.html')
+    """Serve the main page"""
+    try:
+        return render_template('index.html')
+    except Exception as e:
+        return f"""
+        <html>
+            <head><title>Cab Fare Predictor</title></head>
+            <body>
+                <h1>Cab Fare Predictor</h1>
+                <p>Error loading page: {str(e)}</p>
+                <p>API is running. Use /api endpoints.</p>
+            </body>
+        </html>
+        """
+
+@app.route('/<path:path>')
+def serve_static(path):
+    """Serve static files"""
+    try:
+        return send_from_directory('.', path)
+    except:
+        return "File not found", 404
 
 @app.route('/api/features', methods=['GET'])
 def get_features():
     """Return available features and their options"""
     return jsonify({
         'categorical_mappings': CATEGORICAL_MAPPINGS,
-        'feature_names': feature_names
+        'feature_names': feature_names,
+        'status': 'success'
     })
 
 @app.route('/api/predict', methods=['POST'])
@@ -386,7 +394,8 @@ def health_check():
         'status': 'healthy',
         'model_loaded': model is not None,
         'scaler_loaded': scaler is not None,
-        'service': 'Cab Fare Prediction API'
+        'service': 'Cab Fare Prediction API',
+        'message': 'Service is running correctly'
     })
 
 # Initialize model when the app starts
@@ -396,4 +405,5 @@ print("Model initialization completed!")
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
+    print(f"Starting server on port {port}")
     app.run(debug=False, host='0.0.0.0', port=port)
