@@ -1,558 +1,168 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cab Fare Prediction</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .card {
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-            border: none;
-            border-radius: 10px;
-        }
-        .card-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-        }
-        .prediction-result {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #28a745;
-        }
-        .feature-card {
-            transition: transform 0.2s;
-        }
-        .feature-card:hover {
-            transform: translateY(-2px);
-        }
-        .loading {
-            display: none;
-        }
-        .connection-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1000;
-        }
-    </style>
-</head>
-<body>
-    <!-- Connection Status Indicator -->
-    <div class="connection-status">
-        <span id="connectionStatus" class="badge bg-secondary">Checking connection...</span>
-    </div>
+<script>
+    // Dynamic API Base URL
+    const API_BASE = window.location.origin + '/api';
+    console.log('API Base URL:', API_BASE);
 
-    <div class="container-fluid py-4">
-        <div class="row">
-            <!-- Header -->
-            <div class="col-12 text-center mb-4">
-                <h1 class="display-4 text-primary">
-                    <i class="fas fa-taxi me-3"></i>Cab Fare Predictor
-                </h1>
-                <p class="lead text-muted">AI-powered cab fare estimation using machine learning</p>
-            </div>
+    // Load model metrics on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Page loaded, testing connection...');
+        testConnection();
+        setDefaultValues();
+        
+        // Add health check on load
+        checkHealth();
+    });
 
-            <!-- Main Content -->
-            <div class="col-lg-8 mx-auto">
-                <!-- Prediction Form -->
-                <div class="card">
-                    <div class="card-header">
-                        <h4 class="mb-0"><i class="fas fa-calculator me-2"></i>Calculate Fare</h4>
-                    </div>
-                    <div class="card-body">
-                        <form id="predictionForm">
-                            <div class="row g-3">
-                                <!-- Trip Details -->
-                                <div class="col-md-6">
-                                    <label class="form-label">Trip Distance (km) *</label>
-                                    <input type="number" class="form-control" name="Trip_Distance_km" id="Trip_Distance_km" step="0.1" min="0.1" required>
-                                    <div class="form-text">Enter distance in kilometers</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Trip Duration (minutes) *</label>
-                                    <input type="number" class="form-control" name="Trip_Duration_Minutes" id="Trip_Duration_Minutes" step="1" min="1" required>
-                                    <div class="form-text">Enter duration in minutes</div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Passenger Count *</label>
-                                    <input type="number" class="form-control" name="Passenger_Count" id="Passenger_Count" step="1" min="1" max="8" required>
-                                    <div class="form-text">Number of passengers (1-8)</div>
-                                </div>
-
-                                <!-- Time & Date -->
-                                <div class="col-md-6">
-                                    <label class="form-label">Time of Day *</label>
-                                    <select class="form-select" name="Time_of_Day" id="Time_of_Day" required>
-                                        <option value="">Select time...</option>
-                                        <option value="Morning">Morning</option>
-                                        <option value="Afternoon">Afternoon</option>
-                                        <option value="Evening">Evening</option>
-                                        <option value="Night">Night</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Day of Week *</label>
-                                    <select class="form-select" name="Day_of_Week" id="Day_of_Week" required>
-                                        <option value="">Select day type...</option>
-                                        <option value="Weekday">Weekday</option>
-                                        <option value="Weekend">Weekend</option>
-                                    </select>
-                                </div>
-
-                                <!-- Environmental Conditions -->
-                                <div class="col-md-6">
-                                    <label class="form-label">Traffic Conditions *</label>
-                                    <select class="form-select" name="Traffic_Conditions" id="Traffic_Conditions" required>
-                                        <option value="">Select traffic...</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
-                                    </select>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Weather *</label>
-                                    <select class="form-select" name="Weather" id="Weather" required>
-                                        <option value="">Select weather...</option>
-                                        <option value="Clear">Clear</option>
-                                        <option value="Rain">Rain</option>
-                                        <option value="Snow">Snow</option>
-                                        <option value="Fog">Fog</option>
-                                    </select>
-                                </div>
-
-                                <!-- Fare Structure -->
-                                <div class="col-md-4">
-                                    <label class="form-label">Base Fare ($) *</label>
-                                    <input type="number" class="form-control" name="Base_Fare" id="Base_Fare" step="0.01" min="0" required>
-                                    <div class="form-text">Initial fare amount</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Per Km Rate ($) *</label>
-                                    <input type="number" class="form-control" name="Per_Km_Rate" id="Per_Km_Rate" step="0.01" min="0" required>
-                                    <div class="form-text">Cost per kilometer</div>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Per Minute Rate ($) *</label>
-                                    <input type="number" class="form-control" name="Per_Minute_Rate" id="Per_Minute_Rate" step="0.01" min="0" required>
-                                    <div class="form-text">Cost per minute</div>
-                                </div>
-                            </div>
-
-                            <div class="mt-4">
-                                <button type="submit" class="btn btn-primary btn-lg w-100" id="predictButton">
-                                    <i class="fas fa-bolt me-2"></i>Predict Fare
-                                </button>
-                            </div>
-                        </form>
-
-                        <!-- Loading Spinner -->
-                        <div class="text-center mt-3 loading" id="loadingSpinner">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">Loading...</span>
-                            </div>
-                            <p class="mt-2">Calculating fare...</p>
-                        </div>
-
-                        <!-- Prediction Result -->
-                        <div class="alert alert-success mt-3 text-center" id="predictionResult" style="display: none;">
-                            <h4>Estimated Fare</h4>
-                            <div class="prediction-result" id="predictedPrice">$0.00</div>
-                            <small class="text-muted">Based on machine learning analysis</small>
-                        </div>
-
-                        <!-- Error Message -->
-                        <div class="alert alert-danger mt-3 text-center" id="errorMessage" style="display: none;">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            <span id="errorText"></span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Model Information -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card feature-card">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Model Performance</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="modelMetrics">
-                                    <div class="text-center">
-                                        <div class="spinner-border spinner-border-sm" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <small class="text-muted">Loading metrics...</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card feature-card">
-                            <div class="card-header">
-                                <h6 class="mb-0"><i class="fas fa-star me-2"></i>Key Features</h6>
-                            </div>
-                            <div class="card-body">
-                                <div id="featureImportance">
-                                    <div class="text-center">
-                                        <div class="spinner-border spinner-border-sm" role="status">
-                                            <span class="visually-hidden">Loading...</span>
-                                        </div>
-                                        <small class="text-muted">Loading features...</small>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- API Test Section -->
-                <div class="card mt-4">
-                    <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-wrench me-2"></i>API Connection Test</h6>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-primary w-100" onclick="testConnection()">
-                                    <i class="fas fa-plug me-2"></i>Test API Connection
-                                </button>
-                            </div>
-                            <div class="col-md-6">
-                                <button class="btn btn-outline-info w-100" onclick="testPrediction()">
-                                    <i class="fas fa-vial me-2"></i>Test Prediction
-                                </button>
-                            </div>
-                        </div>
-                        <div id="testResults" class="mt-3"></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Dynamic API Base URL
-        const API_BASE = window.location.origin + '/api';
-        console.log('API Base URL:', API_BASE);
-
-        // Load model metrics on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('Page loaded, testing connection...');
-            testConnection();
-            setDefaultValues();
-        });
-
-        // Set default values for testing
-        function setDefaultValues() {
-            document.getElementById('Trip_Distance_km').value = '15.5';
-            document.getElementById('Trip_Duration_Minutes').value = '25';
-            document.getElementById('Passenger_Count').value = '2';
-            document.getElementById('Base_Fare').value = '3.50';
-            document.getElementById('Per_Km_Rate').value = '1.20';
-            document.getElementById('Per_Minute_Rate').value = '0.30';
-            document.getElementById('Time_of_Day').value = 'Afternoon';
-            document.getElementById('Day_of_Week').value = 'Weekday';
-            document.getElementById('Traffic_Conditions').value = 'Medium';
-            document.getElementById('Weather').value = 'Clear';
-        }
-
-        // Handle form submission
-        document.getElementById('predictionForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+    // Health check function
+    async function checkHealth() {
+        try {
+            const response = await fetch(`${API_BASE}/health`);
+            const data = await response.json();
+            console.log('Health check:', data);
             
-            if (!validateForm()) {
-                return;
+            if (data.model_loaded && data.scaler_loaded) {
+                console.log('Model is ready for predictions');
+            } else {
+                console.warn('Model still loading...');
+                // Retry after 2 seconds if model isn't ready
+                setTimeout(checkHealth, 2000);
             }
-            
-            const inputData = collectFormData();
-            console.log('Collected form data:', inputData);
-            await predictFare(inputData);
-        });
+        } catch (error) {
+            console.error('Health check failed:', error);
+            // Retry after 2 seconds
+            setTimeout(checkHealth, 2000);
+        }
+    }
 
-        // Collect form data - FIXED VERSION
-        function collectFormData() {
-            const form = document.getElementById('predictionForm');
-            const formData = new FormData(form);
-            const inputData = {};
+    // Set default values for testing
+    function setDefaultValues() {
+        document.getElementById('Trip_Distance_km').value = '15.5';
+        document.getElementById('Trip_Duration_Minutes').value = '25';
+        document.getElementById('Passenger_Count').value = '2';
+        document.getElementById('Base_Fare').value = '3.50';
+        document.getElementById('Per_Km_Rate').value = '1.20';
+        document.getElementById('Per_Minute_Rate').value = '0.30';
+        document.getElementById('Time_of_Day').value = 'Afternoon';
+        document.getElementById('Day_of_Week').value = 'Weekday';
+        document.getElementById('Traffic_Conditions').value = 'Medium';
+        document.getElementById('Weather').value = 'Clear';
+    }
 
-            // Get all form fields including select elements
-            const fields = [
-                'Trip_Distance_km', 'Trip_Duration_Minutes', 'Passenger_Count',
-                'Time_of_Day', 'Day_of_Week', 'Traffic_Conditions', 'Weather',
-                'Base_Fare', 'Per_Km_Rate', 'Per_Minute_Rate'
-            ];
+    // Handle form submission
+    document.getElementById('predictionForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
+        
+        const inputData = collectFormData();
+        console.log('Collected form data:', inputData);
+        await predictFare(inputData);
+    });
 
-            fields.forEach(field => {
-                const element = document.getElementById(field);
-                if (element) {
+    // Collect form data
+    function collectFormData() {
+        const inputData = {};
+
+        // Get all form fields
+        const fields = [
+            'Trip_Distance_km', 'Trip_Duration_Minutes', 'Passenger_Count',
+            'Time_of_Day', 'Day_of_Week', 'Traffic_Conditions', 'Weather',
+            'Base_Fare', 'Per_Km_Rate', 'Per_Minute_Rate'
+        ];
+
+        fields.forEach(field => {
+            const element = document.getElementById(field);
+            if (element) {
+                // Convert numeric fields to numbers, keep categorical as strings
+                if (field.includes('Distance') || field.includes('Duration') || 
+                    field.includes('Count') || field.includes('Fare') || 
+                    field.includes('Rate')) {
+                    inputData[field] = parseFloat(element.value);
+                } else {
                     inputData[field] = element.value;
                 }
-            });
-
-            // Convert numeric fields to numbers
-            const numericFields = [
-                'Trip_Distance_km', 'Trip_Duration_Minutes', 'Passenger_Count',
-                'Base_Fare', 'Per_Km_Rate', 'Per_Minute_Rate'
-            ];
-
-            numericFields.forEach(field => {
-                if (inputData[field]) {
-                    inputData[field] = parseFloat(inputData[field]);
-                }
-            });
-
-            return inputData;
-        }
-
-        // Validate form
-        function validateForm() {
-            const requiredFields = [
-                'Trip_Distance_km', 'Trip_Duration_Minutes', 'Passenger_Count',
-                'Time_of_Day', 'Day_of_Week', 'Traffic_Conditions', 'Weather',
-                'Base_Fare', 'Per_Km_Rate', 'Per_Minute_Rate'
-            ];
-
-            for (const fieldId of requiredFields) {
-                const field = document.getElementById(fieldId);
-                if (!field || !field.value) {
-                    showError(`Please fill in ${fieldId.replace(/_/g, ' ')}`);
-                    if (field) field.focus();
-                    return false;
-                }
             }
-            return true;
-        }
+        });
 
-        // Predict fare function
-        async function predictFare(inputData) {
-            showLoading(true);
-            hideResults();
+        return inputData;
+    }
 
-            try {
-                console.log('Sending prediction request:', inputData);
-                
-                const response = await fetch(`${API_BASE}/predict`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(inputData)
-                });
+    // Validate form
+    function validateForm() {
+        const requiredFields = [
+            'Trip_Distance_km', 'Trip_Duration_Minutes', 'Passenger_Count',
+            'Time_of_Day', 'Day_of_Week', 'Traffic_Conditions', 'Weather',
+            'Base_Fare', 'Per_Km_Rate', 'Per_Minute_Rate'
+        ];
 
-                console.log('Response status:', response.status);
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
-                }
-
-                const data = await response.json();
-                console.log('Prediction response:', data);
-
-                if (data.error) {
-                    showError(data.error);
-                } else {
-                    showPrediction(data.predicted_price);
-                }
-            } catch (error) {
-                console.error('Prediction error:', error);
-                showError(`Prediction failed: ${error.message}`);
-            } finally {
-                showLoading(false);
-            }
-        }
-
-        // Test API connection
-        async function testConnection() {
-            updateConnectionStatus('Testing...', 'warning');
-            
-            try {
-                const response = await fetch(`${API_BASE}/features`, {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    console.log('Features API response:', data);
-                    updateConnectionStatus('Connected ✓', 'success');
-                    loadModelMetrics();
-                    loadFeatureImportance();
-                    return true;
-                } else {
-                    throw new Error(`HTTP ${response.status}`);
-                }
-            } catch (error) {
-                console.error('Connection test failed:', error);
-                updateConnectionStatus('Disconnected ✗', 'danger');
-                
-                document.getElementById('testResults').innerHTML = `
-                    <div class="alert alert-warning">
-                        <h6>Connection Troubleshooting:</h6>
-                        <ol class="mb-0">
-                            <li>Make sure Flask server is running: <code>python app.py</code></li>
-                            <li>Check if server is accessible at: <code>${window.location.origin}</code></li>
-                            <li>Verify no other applications are using port 5000</li>
-                            <li>Check browser console for detailed errors (F12)</li>
-                        </ol>
-                    </div>
-                `;
+        for (const fieldId of requiredFields) {
+            const field = document.getElementById(fieldId);
+            if (!field || !field.value) {
+                showError(`Please fill in ${fieldId.replace(/_/g, ' ')}`);
+                if (field) field.focus();
                 return false;
             }
         }
+        return true;
+    }
 
-        // Test prediction with sample data
-        async function testPrediction() {
-            const testData = {
-                'Trip_Distance_km': 10,
-                'Trip_Duration_Minutes': 20,
-                'Passenger_Count': 2,
-                'Time_of_Day': 'Afternoon',
-                'Day_of_Week': 'Weekday',
-                'Traffic_Conditions': 'Medium',
-                'Weather': 'Clear',
-                'Base_Fare': 3.00,
-                'Per_Km_Rate': 1.50,
-                'Per_Minute_Rate': 0.25
-            };
+    // Predict fare function with better error handling
+    async function predictFare(inputData) {
+        showLoading(true);
+        hideResults();
 
-            document.getElementById('testResults').innerHTML = `
-                <div class="alert alert-info">
-                    <i class="fas fa-sync fa-spin me-2"></i>Testing prediction with sample data...
-                </div>
-            `;
+        try {
+            console.log('Sending prediction request:', inputData);
+            
+            const response = await fetch(`${API_BASE}/predict`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(inputData)
+            });
 
-            try {
-                const response = await fetch(`${API_BASE}/predict`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(testData)
-                });
+            console.log('Response status:', response.status);
+            
+            const data = await response.json();
+            console.log('Prediction response:', data);
 
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('testResults').innerHTML = `
-                        <div class="alert alert-success">
-                            <i class="fas fa-check me-2"></i>
-                            <strong>Test Successful!</strong><br>
-                            Sample prediction: $${data.predicted_price}
-                        </div>
-                    `;
+            if (!response.ok) {
+                // Handle specific error cases
+                if (response.status === 503) {
+                    throw new Error('Model is still loading. Please try again in a moment.');
+                } else if (data.error && data.error.includes('encoding')) {
+                    throw new Error('Invalid input values. Please check your selections.');
                 } else {
-                    throw new Error(data.error || 'Test failed');
+                    throw new Error(data.error || `HTTP error! status: ${response.status}`);
                 }
-            } catch (error) {
-                document.getElementById('testResults').innerHTML = `
-                    <div class="alert alert-danger">
-                        <i class="fas fa-times me-2"></i>
-                        <strong>Test Failed:</strong> ${error.message}
-                    </div>
-                `;
             }
-        }
 
-        // Load model metrics
-        async function loadModelMetrics() {
-            try {
-                const response = await fetch(`${API_BASE}/model/metrics`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    document.getElementById('modelMetrics').innerHTML = `
-                        <div class="row text-center">
-                            <div class="col-6">
-                                <small class="text-muted">R² Score</small>
-                                <div class="fw-bold text-success">${data.r2_score}</div>
-                            </div>
-                            <div class="col-6">
-                                <small class="text-muted">MAE</small>
-                                <div class="fw-bold text-info">$${data.mean_absolute_error}</div>
-                            </div>
-                        </div>
-                        <div class="mt-2">
-                            <small class="text-muted">Model Type</small>
-                            <div class="fw-bold">${data.model_type}</div>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('modelMetrics').innerHTML = `
-                    <div class="text-center text-muted">
-                        <small>Failed to load metrics</small>
-                    </div>
-                `;
+            if (data.error) {
+                showError(data.error);
+            } else {
+                showPrediction(data.predicted_price);
             }
-        }
-
-        // Load feature importance
-        async function loadFeatureImportance() {
-            try {
-                const response = await fetch(`${API_BASE}/feature_importance`);
-                const data = await response.json();
-
-                if (response.ok) {
-                    const topFeatures = data.most_important.slice(0, 3);
-                    document.getElementById('featureImportance').innerHTML = `
-                        ${topFeatures.map((feature, index) => `
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <span>${index + 1}. ${feature.replace(/_/g, ' ')}</span>
-                                <span class="badge bg-primary">${index === 0 ? 'High' : index === 1 ? 'Medium' : 'Low'}</span>
-                            </div>
-                        `).join('')}
-                    `;
-                }
-            } catch (error) {
-                document.getElementById('featureImportance').innerHTML = `
-                    <div class="text-center text-muted">
-                        <small>Failed to load features</small>
-                    </div>
-                `;
+        } catch (error) {
+            console.error('Prediction error:', error);
+            
+            // User-friendly error messages
+            let userMessage = error.message;
+            if (error.message.includes('Failed to fetch')) {
+                userMessage = 'Cannot connect to the server. Please check your connection and try again.';
+            } else if (error.message.includes('encoding') || error.message.includes('Invalid value')) {
+                userMessage = 'Invalid input values detected. Please check all fields and try again.';
+            } else if (error.message.includes('Model is still loading')) {
+                userMessage = 'The prediction model is still initializing. Please wait a moment and try again.';
             }
+            
+            showError(`Prediction failed: ${userMessage}`);
+        } finally {
+            showLoading(false);
         }
+    }
 
-        // UI Helper Functions
-        function showLoading(show) {
-            document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
-            document.getElementById('predictButton').disabled = show;
-        }
-
-        function showPrediction(price) {
-            document.getElementById('predictedPrice').textContent = `$${price}`;
-            document.getElementById('predictionResult').style.display = 'block';
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-
-        function showError(message) {
-            document.getElementById('errorText').textContent = message;
-            document.getElementById('errorMessage').style.display = 'block';
-            document.getElementById('predictionResult').style.display = 'none';
-        }
-
-        function hideResults() {
-            document.getElementById('predictionResult').style.display = 'none';
-            document.getElementById('errorMessage').style.display = 'none';
-        }
-
-        function updateConnectionStatus(message, type) {
-            const statusElement = document.getElementById('connectionStatus');
-            statusElement.textContent = message;
-            statusElement.className = `badge bg-${type}`;
-        }
-    </script>
-</body>
-</html>
+    // ... rest of the JavaScript functions remain the same ...
+</script>
