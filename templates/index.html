@@ -40,6 +40,16 @@
             right: 20px;
             z-index: 1000;
         }
+        .fare-breakdown {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+        }
+        .multiplier-info {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
     </style>
 </head>
 <body>
@@ -53,10 +63,10 @@
                 <h1 class="display-4 text-primary">
                     <i class="fas fa-taxi me-3"></i>Cab Fare Predictor
                 </h1>
-                <p class="lead text-muted">AI-powered cab fare estimation using machine learning</p>
+                <p class="lead text-muted">AI-powered realistic cab fare estimation</p>
             </div>
 
-            <div class="col-lg-8 mx-auto">
+            <div class="col-lg-10 mx-auto">
                 <div class="card">
                     <div class="card-header">
                         <h4 class="mb-0"><i class="fas fa-calculator me-2"></i>Calculate Fare</h4>
@@ -64,76 +74,92 @@
                     <div class="card-body">
                         <form id="predictionForm">
                             <div class="row g-3">
-                                <div class="col-md-6">
+                                <!-- Trip Basics -->
+                                <div class="col-md-4">
                                     <label class="form-label">Trip Distance (km) *</label>
                                     <input type="number" class="form-control" id="Trip_Distance_km" step="0.1" min="0.1" required>
+                                    <div class="form-text">Distance in kilometers</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Trip Duration (minutes) *</label>
                                     <input type="number" class="form-control" id="Trip_Duration_Minutes" step="1" min="1" required>
+                                    <div class="form-text">Estimated travel time</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label">Passenger Count *</label>
                                     <input type="number" class="form-control" id="Passenger_Count" step="1" min="1" max="8" required>
+                                    <div class="form-text">Number of passengers</div>
                                 </div>
-                                <div class="col-md-6">
+
+                                <!-- Time & Conditions -->
+                                <div class="col-md-3">
                                     <label class="form-label">Time of Day *</label>
                                     <select class="form-select" id="Time_of_Day" required>
                                         <option value="">Select time...</option>
-                                        <option value="Morning">Morning</option>
-                                        <option value="Afternoon">Afternoon</option>
-                                        <option value="Evening">Evening</option>
-                                        <option value="Night">Night</option>
+                                        <option value="Morning">Morning (Standard)</option>
+                                        <option value="Afternoon">Afternoon (Standard)</option>
+                                        <option value="Evening">Evening (+20%)</option>
+                                        <option value="Night">Night (+40%)</option>
                                     </select>
+                                    <div class="multiplier-info">Higher rates at night</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label class="form-label">Day of Week *</label>
                                     <select class="form-select" id="Day_of_Week" required>
-                                        <option value="">Select day type...</option>
-                                        <option value="Weekday">Weekday</option>
-                                        <option value="Weekend">Weekend</option>
+                                        <option value="">Select day...</option>
+                                        <option value="Weekday">Weekday (Standard)</option>
+                                        <option value="Weekend">Weekend (+15%)</option>
                                     </select>
+                                    <div class="multiplier-info">Weekends cost more</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label class="form-label">Traffic Conditions *</label>
                                     <select class="form-select" id="Traffic_Conditions" required>
                                         <option value="">Select traffic...</option>
-                                        <option value="Low">Low</option>
-                                        <option value="Medium">Medium</option>
-                                        <option value="High">High</option>
+                                        <option value="Low">Low (Standard)</option>
+                                        <option value="Medium">Medium (+15%)</option>
+                                        <option value="High">High (+35%)</option>
                                     </select>
+                                    <div class="multiplier-info">Heavy traffic increases fare</div>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-3">
                                     <label class="form-label">Weather *</label>
                                     <select class="form-select" id="Weather" required>
                                         <option value="">Select weather...</option>
-                                        <option value="Clear">Clear</option>
-                                        <option value="Rain">Rain</option>
-                                        <option value="Snow">Snow</option>
-                                        <option value="Fog">Fog</option>
+                                        <option value="Clear">Clear (Standard)</option>
+                                        <option value="Rain">Rain (+20%)</option>
+                                        <option value="Fog">Fog (+30%)</option>
+                                        <option value="Snow">Snow (+50%)</option>
                                     </select>
+                                    <div class="multiplier-info">Bad weather increases fare</div>
                                 </div>
+
+                                <!-- Fare Structure -->
                                 <div class="col-md-4">
                                     <label class="form-label">Base Fare ($) *</label>
                                     <input type="number" class="form-control" id="Base_Fare" step="0.01" min="0" required>
+                                    <div class="form-text">Initial pickup charge</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Per Km Rate ($) *</label>
                                     <input type="number" class="form-control" id="Per_Km_Rate" step="0.01" min="0" required>
+                                    <div class="form-text">Cost per kilometer</div>
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label">Per Minute Rate ($) *</label>
                                     <input type="number" class="form-control" id="Per_Minute_Rate" step="0.01" min="0" required>
+                                    <div class="form-text">Cost per minute of travel</div>
                                 </div>
                             </div>
 
                             <div class="mt-4">
                                 <button type="submit" class="btn btn-primary btn-lg w-100" id="predictButton">
-                                    <i class="fas fa-bolt me-2"></i>Predict Fare
+                                    <i class="fas fa-bolt me-2"></i>Calculate Estimated Fare
                                 </button>
                             </div>
                         </form>
 
+                        <!-- Loading Spinner -->
                         <div class="text-center mt-3 loading" id="loadingSpinner">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">Loading...</span>
@@ -141,12 +167,36 @@
                             <p class="mt-2">Calculating fare...</p>
                         </div>
 
-                        <div class="alert alert-success mt-3 text-center" id="predictionResult" style="display: none;">
-                            <h4>Estimated Fare</h4>
-                            <div class="prediction-result" id="predictedPrice">$0.00</div>
-                            <small class="text-muted">Based on machine learning analysis</small>
+                        <!-- Prediction Result -->
+                        <div class="alert alert-success mt-3" id="predictionResult" style="display: none;">
+                            <div class="text-center">
+                                <h4>Estimated Fare</h4>
+                                <div class="prediction-result" id="predictedPrice">$0.00</div>
+                                <small class="text-muted">Inclusive of all conditions and multipliers</small>
+                            </div>
+                            
+                            <div class="fare-breakdown mt-3">
+                                <h6><i class="fas fa-info-circle me-2"></i>Fare Breakdown:</h6>
+                                <div class="row small">
+                                    <div class="col-6">Base fare + distance + time</div>
+                                    <div class="col-6 text-end" id="basePrice">$0.00</div>
+                                    
+                                    <div class="col-6">Traffic conditions</div>
+                                    <div class="col-6 text-end" id="trafficEffect">Standard</div>
+                                    
+                                    <div class="col-6">Time of day</div>
+                                    <div class="col-6 text-end" id="timeEffect">Standard</div>
+                                    
+                                    <div class="col-6">Weather conditions</div>
+                                    <div class="col-6 text-end" id="weatherEffect">Standard</div>
+                                    
+                                    <div class="col-6">Day of week</div>
+                                    <div class="col-6 text-end" id="dayEffect">Standard</div>
+                                </div>
+                            </div>
                         </div>
 
+                        <!-- Error Message -->
                         <div class="alert alert-danger mt-3 text-center" id="errorMessage" style="display: none;">
                             <i class="fas fa-exclamation-triangle me-2"></i>
                             <span id="errorText"></span>
@@ -154,20 +204,54 @@
                     </div>
                 </div>
 
-                <div class="card mt-4">
+                <!-- Information Card -->
+                <div class="card">
                     <div class="card-header">
-                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>API Status</h6>
+                        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i>How Fares Are Calculated</h6>
                     </div>
                     <div class="card-body">
                         <div class="row">
                             <div class="col-md-6">
+                                <h6>Base Calculation:</h6>
+                                <ul class="small">
+                                    <li><strong>Base Fare</strong>: Fixed pickup charge</li>
+                                    <li><strong>Distance Cost</strong>: Trip distance × Per Km Rate</li>
+                                    <li><strong>Time Cost</strong>: Trip duration × Per Minute Rate</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Condition Multipliers:</h6>
+                                <ul class="small">
+                                    <li><strong>Night/Evening</strong>: Higher rates (20-40% extra)</li>
+                                    <li><strong>Weekends</strong>: 15% surcharge</li>
+                                    <li><strong>Heavy Traffic</strong>: 15-35% extra</li>
+                                    <li><strong>Bad Weather</strong>: 20-50% extra</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- API Test Section -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-wrench me-2"></i>System Status</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-4">
                                 <button class="btn btn-outline-primary w-100" onclick="testConnection()">
                                     <i class="fas fa-plug me-2"></i>Test Connection
                                 </button>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <button class="btn btn-outline-info w-100" onclick="testPrediction()">
                                     <i class="fas fa-vial me-2"></i>Test Prediction
+                                </button>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn-outline-warning w-100" onclick="retrainModel()">
+                                    <i class="fas fa-sync me-2"></i>Retrain Model
                                 </button>
                             </div>
                         </div>
@@ -234,7 +318,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    showPrediction(data.predicted_price);
+                    showPrediction(data.predicted_price, inputData);
                 } else {
                     showError(data.error || 'Prediction failed');
                 }
@@ -243,6 +327,39 @@
             } finally {
                 showLoading(false);
             }
+        }
+
+        function showPrediction(price, inputData) {
+            document.getElementById('predictedPrice').textContent = `$${price}`;
+            
+            // Calculate base price for breakdown
+            const basePrice = (
+                inputData.Base_Fare +
+                inputData.Trip_Distance_km * inputData.Per_Km_Rate +
+                inputData.Trip_Duration_Minutes * inputData.Per_Minute_Rate
+            ).toFixed(2);
+            
+            document.getElementById('basePrice').textContent = `$${basePrice}`;
+            
+            // Update breakdown effects
+            document.getElementById('trafficEffect').textContent = 
+                inputData.Traffic_Conditions === 'Low' ? 'Standard' : 
+                inputData.Traffic_Conditions === 'Medium' ? '+15%' : '+35%';
+                
+            document.getElementById('timeEffect').textContent = 
+                inputData.Time_of_Day === 'Morning' || inputData.Time_of_Day === 'Afternoon' ? 'Standard' :
+                inputData.Time_of_Day === 'Evening' ? '+20%' : '+40%';
+                
+            document.getElementById('weatherEffect').textContent = 
+                inputData.Weather === 'Clear' ? 'Standard' :
+                inputData.Weather === 'Rain' ? '+20%' :
+                inputData.Weather === 'Fog' ? '+30%' : '+50%';
+                
+            document.getElementById('dayEffect').textContent = 
+                inputData.Day_of_Week === 'Weekday' ? 'Standard' : '+15%';
+            
+            document.getElementById('predictionResult').style.display = 'block';
+            document.getElementById('errorMessage').style.display = 'none';
         }
 
         async function testConnection() {
@@ -318,15 +435,43 @@
             }
         }
 
+        async function retrainModel() {
+            document.getElementById('testResults').innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-sync fa-spin me-2"></i>Retraining model with corrected logic...
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`${API_BASE}/model/retrain`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'}
+                });
+
+                const data = await response.json();
+                if (response.ok) {
+                    document.getElementById('testResults').innerHTML = `
+                        <div class="alert alert-success">
+                            <i class="fas fa-check me-2"></i>
+                            Model retrained successfully! R² Score: ${data.metrics.r2}
+                        </div>
+                    `;
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                document.getElementById('testResults').innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-times me-2"></i>
+                        Retraining failed: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
         function showLoading(show) {
             document.getElementById('loadingSpinner').style.display = show ? 'block' : 'none';
             document.getElementById('predictButton').disabled = show;
-        }
-
-        function showPrediction(price) {
-            document.getElementById('predictedPrice').textContent = `$${price}`;
-            document.getElementById('predictionResult').style.display = 'block';
-            document.getElementById('errorMessage').style.display = 'none';
         }
 
         function showError(message) {
